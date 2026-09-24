@@ -1,5 +1,9 @@
 import { Hono } from "hono";
-import { propertyOptionalValidator, propertyValidator } from "../validators/propertyValidator.js";
+import {
+  propertyOptionalValidator,
+  propertyValidator,
+} from "../validators/propertyValidator.js";
+import fs from "fs/promises";
 
 const properties = new Hono({ strict: false });
 
@@ -42,14 +46,42 @@ const dummyProperties: Property[] = [
   },
 ];
 
-properties.get("/", (c) => {
-  return c.json(dummyProperties);
+async function getProperties(): Promise<Property[]> {
+  try {
+    const data = await fs.readFile("src/data/properties.json", {
+      encoding: "utf8",
+    });
+    const properties: Property[] = JSON.parse(data);
+    return properties;
+  } catch (e) {
+    console.warn("Error getting properties from json", e);
+    return [];
+  }
+}
+
+async function saveProperties(properties: Property[] ): Promise<void> {
+  try {
+    const data = JSON.stringify(properties, null, 2)
+    await fs.writeFile("src/data/properties.json", data, {
+      encoding: "utf-8"
+    });
+    return
+  } catch (e) {
+    console.warn("Error writing properties to json file", e)
+    throw Error("Error writing properties to json file");
+  }
+}
+
+properties.get("/", async (c) => {
+  const properties = await getProperties();
+  return c.json(properties);
 });
 
 // individuell GET hämta en Property om den finns baserat på ID annars null 404
-properties.get("/:id", (c) => {
+properties.get("/:id", async (c) => {
+  const properties = await getProperties();
   const propertyId = c.req.param("id");
-  const property = dummyProperties.find(
+  const property = properties.find(
     (property) => property.property_id === propertyId,
   );
   if (!property) {
@@ -60,14 +92,20 @@ properties.get("/:id", (c) => {
 
 // "Skpande" av en Propery POST genom en JSON body använd Postman eller thunderclient för detta
 properties.post("/", propertyValidator, async (c) => {
-  const propertyBody: NewProperty = c.req.valid("json")
+  const propertyBody: NewProperty = c.req.valid("json");
   const property: Property = {
     ...propertyBody,
-    property_id: `property_${1000 + dummyProperties.length + 1 }`
+    property_id: `property_${1000 + dummyProperties.length + 1}`,
+  };
+  const properties = await getProperties()
+  properties.push(property)
+  try {
+    await saveProperties(properties)
+  } catch (e) {
+    return c.json(e, 500)
   }
-  dummyProperties.push(property)
-  return c.json(property, 201) 
-})
+  return c.json(property, 201);
+});
 
 // Extra: "Updaterande" av en Property PUT/PATCH (för patch kolla Partial types)
 // om den finns tänk en blandning mellan GET + POST
@@ -76,21 +114,20 @@ properties.patch("/:id", propertyOptionalValidator, async (c) => {
   const propertyIndex = dummyProperties.findIndex(
     (property) => property.property_id === propertyId,
   );
-  
+
   if (propertyIndex === -1) {
     return c.json(null, 404);
   }
 
-  const propertyBody: Partial<Property> = c.req.valid("json")
+  const propertyBody: Partial<Property> = c.req.valid("json");
   dummyProperties[propertyIndex] = {
     ...dummyProperties[propertyIndex],
     property_id: dummyProperties[propertyIndex].property_id,
-    ...propertyBody
-  }
+    ...propertyBody,
+  };
 
-  return c.json(dummyProperties[propertyIndex])
-
-})
+  return c.json(dummyProperties[propertyIndex]);
+});
 
 // Extra: "bortagning" av en Property DELETE om den finns tänk en GET som sedan tar bort 200/204
 properties.delete("/:id", (c) => {
@@ -101,7 +138,7 @@ properties.delete("/:id", (c) => {
   if (propertyIndex === -1) {
     return c.json(null, 404);
   }
-  dummyProperties.splice(propertyIndex,1)
+  dummyProperties.splice(propertyIndex, 1);
   return c.json(null, 200);
 });
 export default properties;
