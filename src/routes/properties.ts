@@ -45,4 +45,9 @@ properties.get('/', (c) => {
 
 // "Skpande" av en Propery POST genom en JSON body använd Postman eller thunderclient för detta
 
+// Extra: "Updaterande" av en Property PUT/PATCH (för patch kolla Partial types) 
+// om den finns tänk en blandning mellan GET + POST
+
+// Extra: "bortagning" av en Property DELETE om den finns tänk en GET som sedan tar bort 200/204
+
 export default properties
