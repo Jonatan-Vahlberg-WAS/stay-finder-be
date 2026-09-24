@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { propertyOptionalValidator, propertyValidator } from "../validators/propertyValidator.js";
 
 const properties = new Hono({ strict: false });
 
@@ -58,8 +59,8 @@ properties.get("/:id", (c) => {
 });
 
 // "Skpande" av en Propery POST genom en JSON body använd Postman eller thunderclient för detta
-properties.post("/", async (c) => {
-  const propertyBody: NewProperty = await c.req.json()
+properties.post("/", propertyValidator, async (c) => {
+  const propertyBody: NewProperty = c.req.valid("json")
   const property: Property = {
     ...propertyBody,
     property_id: `property_${1000 + dummyProperties.length + 1 }`
@@ -70,6 +71,26 @@ properties.post("/", async (c) => {
 
 // Extra: "Updaterande" av en Property PUT/PATCH (för patch kolla Partial types)
 // om den finns tänk en blandning mellan GET + POST
+properties.patch("/:id", propertyOptionalValidator, async (c) => {
+  const propertyId = c.req.param("id");
+  const propertyIndex = dummyProperties.findIndex(
+    (property) => property.property_id === propertyId,
+  );
+  
+  if (propertyIndex === -1) {
+    return c.json(null, 404);
+  }
+
+  const propertyBody: Partial<Property> = c.req.valid("json")
+  dummyProperties[propertyIndex] = {
+    ...dummyProperties[propertyIndex],
+    property_id: dummyProperties[propertyIndex].property_id,
+    ...propertyBody
+  }
+
+  return c.json(dummyProperties[propertyIndex])
+
+})
 
 // Extra: "bortagning" av en Property DELETE om den finns tänk en GET som sedan tar bort 200/204
 properties.delete("/:id", (c) => {
@@ -81,7 +102,6 @@ properties.delete("/:id", (c) => {
     return c.json(null, 404);
   }
   dummyProperties.splice(propertyIndex,1)
-  console.log(dummyProperties)
   return c.json(null, 200);
 });
 export default properties;
