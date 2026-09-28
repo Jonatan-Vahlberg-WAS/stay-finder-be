@@ -79,7 +79,7 @@ properties.get("/", async (c) => {
 
 // individuell GET hämta en Property om den finns baserat på ID annars null 404
 properties.get("/:id", async (c) => {
-  const properties = await getProperties();
+  const properties = await getProperties(); // Database logic
   const propertyId = c.req.param("id");
   const property = properties.find(
     (property) => property.property_id === propertyId,
@@ -93,11 +93,11 @@ properties.get("/:id", async (c) => {
 // "Skpande" av en Propery POST genom en JSON body använd Postman eller thunderclient för detta
 properties.post("/", propertyValidator, async (c) => {
   const propertyBody: NewProperty = c.req.valid("json");
+  const properties = await getProperties()
   const property: Property = {
     ...propertyBody,
-    property_id: `property_${1000 + dummyProperties.length + 1}`,
+    property_id: `property_${1000 + properties.length + 1}`,
   };
-  const properties = await getProperties()
   properties.push(property)
   try {
     await saveProperties(properties)
