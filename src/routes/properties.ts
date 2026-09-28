@@ -4,6 +4,7 @@ import {
   propertyValidator,
 } from "../validators/propertyValidator.js";
 import fs from "fs/promises";
+import { sb } from "../lib/supabase.js";
 
 const properties = new Hono({ strict: false });
 
@@ -73,8 +74,17 @@ async function saveProperties(properties: Property[] ): Promise<void> {
 }
 
 properties.get("/", async (c) => {
-  const properties = await getProperties();
-  return c.json(properties);
+  try {
+    const {data, error} = await sb.from("properties").select("*")
+    if(!error) {
+      return c.json(data)
+    }
+    throw error
+      
+  } catch(e) {
+    console.warn("Error in fetching from SB database", e)
+    return c.json([])
+  }
 });
 
 // individuell GET hämta en Property om den finns baserat på ID annars null 404
