@@ -16,7 +16,10 @@ const properties = new Hono({ strict: false });
 
 properties.get("/", async (c) => {
   try {
-    const properties = await getProperties();
+    const properties = await getProperties({
+      maxPrice: Number(c.req.query("maxprice")) || undefined,
+      location: c.req.query("location"),
+    });
     return c.json(properties);
   } catch (e) {
     console.warn("Error in fetching properties from SB database", e);

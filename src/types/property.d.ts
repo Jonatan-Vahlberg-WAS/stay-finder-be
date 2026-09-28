@@ -10,4 +10,4 @@ interface Property {
 
 type NewProperty = Omit<Property, "property_id" | "created_at">
 
-type PropertyKey = keyof Property
+type PropertyValidKey = keyof Property
