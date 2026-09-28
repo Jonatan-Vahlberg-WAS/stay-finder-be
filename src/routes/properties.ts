@@ -5,6 +5,7 @@ import {
 } from "../validators/propertyValidator.js";
 import fs from "fs/promises";
 import { sb } from "../lib/supabase.js";
+import type { PostgrestSingleResponse } from "@supabase/supabase-js";
 
 const properties = new Hono({ strict: false });
 
@@ -60,30 +61,31 @@ async function getProperties(): Promise<Property[]> {
   }
 }
 
-async function saveProperties(properties: Property[] ): Promise<void> {
+async function saveProperties(properties: Property[]): Promise<void> {
   try {
-    const data = JSON.stringify(properties, null, 2)
+    const data = JSON.stringify(properties, null, 2);
     await fs.writeFile("src/data/properties.json", data, {
-      encoding: "utf-8"
+      encoding: "utf-8",
     });
-    return
+    return;
   } catch (e) {
-    console.warn("Error writing properties to json file", e)
+    console.warn("Error writing properties to json file", e);
     throw Error("Error writing properties to json file");
   }
 }
 
 properties.get("/", async (c) => {
   try {
-    const {data, error} = await sb.from("properties").select("*")
-    if(!error) {
-      return c.json(data)
+    const { error, data }: PostgrestSingleResponse<Property[]> = await sb
+      .from("properties")
+      .select("*");
+    if (!error) {
+      return c.json(data);
     }
-    throw error
-      
-  } catch(e) {
-    console.warn("Error in fetching from SB database", e)
-    return c.json([])
+    throw error;
+  } catch (e) {
+    console.warn("Error in fetching from SB database", e);
+    return c.json([]);
   }
 });
 
@@ -103,16 +105,16 @@ properties.get("/:id", async (c) => {
 // "Skpande" av en Propery POST genom en JSON body använd Postman eller thunderclient för detta
 properties.post("/", propertyValidator, async (c) => {
   const propertyBody: NewProperty = c.req.valid("json");
-  const properties = await getProperties()
+  const properties = await getProperties();
   const property: Property = {
     ...propertyBody,
     property_id: `property_${1000 + properties.length + 1}`,
   };
-  properties.push(property)
+  properties.push(property);
   try {
-    await saveProperties(properties)
+    await saveProperties(properties);
   } catch (e) {
-    return c.json(e, 500)
+    return c.json(e, 500);
   }
   return c.json(property, 201);
 });
