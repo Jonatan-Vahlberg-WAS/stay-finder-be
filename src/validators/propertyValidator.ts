@@ -10,6 +10,7 @@ const propertySchema = z.object({
     .min(100, "Price per night needs to be a minimum of 100"),
   location: z.string().min(2, "Location is nececary"),
   property_id: z.string().optional(),
+  created_at: z.string().optional()
 });
 
 const propertyOptionalSchema = propertySchema.partial()
