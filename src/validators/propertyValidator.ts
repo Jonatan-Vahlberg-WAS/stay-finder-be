@@ -9,6 +9,7 @@ const propertySchema = z.object({
     .number()
     .min(100, "Price per night needs to be a minimum of 100"),
   location: z.string().min(2, "Location is nececary"),
+  kind: z.enum<PropertyKind[]>(["apartment", "villa"], `Must be one of "apartment", "villa"`),
   property_id: z.string().optional(),
   created_at: z.string().optional()
 });

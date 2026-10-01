@@ -28,6 +28,11 @@ properties.get("/", async (c) => {
   }
 });
 
+// GET: properties either properties/kind/villa/ | properties/kind/appartment/
+// If not neither of those 400
+// Filter properties based on the kind 
+// Extra add all previous search filtering from GET: properties
+
 // individuell GET hämta en Property om den finns baserat på ID annars null 404
 properties.get("/:id", async (c) => {
   const propertyId = c.req.param("id");

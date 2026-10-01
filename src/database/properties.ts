@@ -11,6 +11,7 @@ const SELECT_QUERY_LIST: PropertyValidKey[] = [
   "location",
   "price_per_night",
   "max_guests",
+  "kind",
   "created_at",
 ];
 
