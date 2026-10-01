@@ -1,5 +1,6 @@
 import * as z from "zod";
 import { zValidator } from "@hono/zod-validator";
+import { getValidatorError } from "../utils/validation.js";
 
 const propertySchema = z.object({
   title: z.string().min(2, "Title is nececary"),
@@ -25,14 +26,6 @@ const propertyParamSchema = z.object({
     `Param must be one of "apartment", "villa"`,
   ),
 });
-
-const getValidatorError = (error: z.core.$ZodError) => {
-  return {
-    errors: error.issues.map((issue) => {
-      return [issue.path.join(", "), issue.message];
-    }),
-  };
-};
 
 export const propertyValidator = zValidator(
   "json",
