@@ -19,6 +19,7 @@ properties.get("/", async (c) => {
     const properties = await getProperties({
       maxPrice: Number(c.req.query("maxprice")) || undefined,
       location: c.req.query("location"),
+      maxGuests: Number(c.req.query("maxguests")) || undefined,
     });
     return c.json(properties);
   } catch (e) {
