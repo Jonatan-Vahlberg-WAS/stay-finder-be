@@ -1,4 +1,7 @@
-import type { PostgrestSingleResponse } from "@supabase/supabase-js";
+import type {
+  PostgrestFilterBuilder,
+  PostgrestSingleResponse,
+} from "@supabase/supabase-js";
 
 import { sb } from "../lib/supabase.js";
 
@@ -17,6 +20,7 @@ const SELECT_QUERY_LIST: PropertyValidKey[] = [
 
 const SELECT_QUERY = SELECT_QUERY_LIST.join(", ");
 const QUERY_ID = "property_id";
+const QUERY_KIND = "kind";
 
 type PropertyListFilter = Partial<{
   maxPrice: number;
@@ -24,11 +28,10 @@ type PropertyListFilter = Partial<{
   maxGuests: number;
 }>;
 
-export async function getProperties(
+function buildPropertiesFilter(
+  query: PostgrestFilterBuilder<any, any, any, any>,
   filters: PropertyListFilter,
-): Promise<Property[]> {
-  let query = sb.from(TABLE_NAME).select(SELECT_QUERY);
-
+) {
   if (filters.maxPrice) {
     query = query.lte("price_per_night", filters.maxPrice);
   }
@@ -37,9 +40,33 @@ export async function getProperties(
     query = query.lte("max_guests", filters.maxGuests);
   }
 
-  if(filters.location && filters.location.trim().length > 2 ) {
-    query = query.ilike("location", `%${filters.location}%`)
+  if (filters.location && filters.location.trim().length > 2) {
+    query = query.ilike("location", `%${filters.location}%`);
   }
+}
+
+export async function getProperties(
+  filters: PropertyListFilter,
+): Promise<Property[]> {
+  let query = sb.from(TABLE_NAME).select(SELECT_QUERY);
+
+  buildPropertiesFilter(query, filters);
+
+  const { error, data } = await query;
+
+  if (!error) {
+    return data as any as Property[];
+  }
+  throw error;
+}
+
+export async function getPropertiesByKind(
+  kind: PropertyKind,
+  filters: PropertyListFilter,
+): Promise<Property[]> {
+  const query = sb.from(TABLE_NAME).select(SELECT_QUERY).eq(QUERY_KIND, kind);
+
+  buildPropertiesFilter(query, filters);
 
   const { error, data } = await query;
 

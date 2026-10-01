@@ -2,12 +2,14 @@ import { Hono } from "hono";
 
 import {
   propertyOptionalValidator,
+  propertyParamValidator,
   propertyValidator,
 } from "../validators/propertyValidator.js";
 import {
   createProperty,
   deletePropertyById,
   getProperties,
+  getPropertiesByKind,
   getPropertyById,
   updatePropertyById,
 } from "../database/properties.js";
@@ -32,6 +34,20 @@ properties.get("/", async (c) => {
 // If not neither of those 400
 // Filter properties based on the kind 
 // Extra add all previous search filtering from GET: properties
+properties.get("/kind/:kind", propertyParamValidator, async (c) => {
+  const kind = c.req.valid("param").kind
+  try {
+    const properties = await getPropertiesByKind(kind, {
+      maxPrice: Number(c.req.query("maxprice")) || undefined,
+      location: c.req.query("location"),
+      maxGuests: Number(c.req.query("maxguests")) || undefined,
+    })
+    return c.json(properties)
+  } catch (e) {
+    console.warn("Error in fetching properties from SB database", e);
+    return c.json([])
+  }
+})
 
 // individuell GET hämta en Property om den finns baserat på ID annars null 404
 properties.get("/:id", async (c) => {

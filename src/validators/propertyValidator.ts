@@ -9,35 +9,57 @@ const propertySchema = z.object({
     .number()
     .min(100, "Price per night needs to be a minimum of 100"),
   location: z.string().min(2, "Location is nececary"),
-  kind: z.enum<PropertyKind[]>(["apartment", "villa"], `Must be one of "apartment", "villa"`),
+  kind: z.enum<PropertyKind[]>(
+    ["apartment", "villa"],
+    `Must be one of "apartment", "villa"`,
+  ),
   property_id: z.string().optional(),
-  created_at: z.string().optional()
+  created_at: z.string().optional(),
 });
 
-const propertyOptionalSchema = propertySchema.partial()
+const propertyOptionalSchema = propertySchema.partial();
 
-export const propertyValidator = zValidator("json", propertySchema, (result, c) => {
-  if (!result.success) {
-    return c.json(
-      {
-        errors: result.error.issues.map(issue => {
-            return [issue.path.join(", "), issue.message]
-        }),
-      },
-      400,
-    );
-  }
+const propertyParamSchema = z.object({
+  kind: z.enum<PropertyKind[]>(
+    ["apartment", "villa"],
+    `Param must be one of "apartment", "villa"`,
+  ),
 });
 
-export const propertyOptionalValidator = zValidator("json", propertyOptionalSchema, (result, c) => {
-  if (!result.success) {
-    return c.json(
-      {
-        errors: result.error.issues.map(issue => {
-            return [issue.path.join(", "), issue.message]
-        }),
-      },
-      400,
-    );
-  }
-});
+const getValidatorError = (error: z.core.$ZodError) => {
+  return {
+    errors: error.issues.map((issue) => {
+      return [issue.path.join(", "), issue.message];
+    }),
+  };
+};
+
+export const propertyValidator = zValidator(
+  "json",
+  propertySchema,
+  (result, c) => {
+    if (!result.success) {
+      return c.json(getValidatorError(result.error), 400);
+    }
+  },
+);
+
+export const propertyOptionalValidator = zValidator(
+  "json",
+  propertyOptionalSchema,
+  (result, c) => {
+    if (!result.success) {
+      return c.json(getValidatorError(result.error), 400);
+    }
+  },
+);
+
+export const propertyParamValidator = zValidator(
+  "param",
+  propertyParamSchema,
+  (result, c) => {
+    if (!result.success) {
+      return c.json(getValidatorError(result.error), 400);
+    }
+  },
+);
