@@ -1,119 +1,78 @@
 import { Hono } from "hono";
+import type { PostgrestError } from "@supabase/supabase-js";
+
 import {
   bookingOptionalValidator,
   bookingValidator,
 } from "../validators/bookingValidator.js";
-import fs from "fs/promises";
+import {
+  createBooking,
+  deleteBooking,
+  getBookingsByPropertyId,
+  updateBooking,
+} from "../database/bookings.js";
+
+const FOREIGN_KEY_VIOLATION = "23503";
 
 const bookings = new Hono({ strict: false });
 
-async function getBookings(): Promise<Booking[]> {
+// Lista alla bookings för en Property
+bookings.get("/properties/:propertyId", async (c) => {
+  const propertyId = c.req.param("propertyId");
   try {
-    const data = await fs.readFile("src/data/bookings.json", {
-      encoding: "utf8",
-    });
-    const bookings: Booking[] = JSON.parse(data);
-    return bookings;
-  } catch (e) {
-    console.warn("Error getting bookings from json", e);
-    return [];
-  }
-}
-
-async function saveBookings(bookings: Booking[]): Promise<void> {
-  try {
-    const data = JSON.stringify(bookings, null, 2);
-    await fs.writeFile("src/data/bookings.json", data, {
-      encoding: "utf-8",
-    });
-    return;
-  } catch (e) {
-    console.warn("Error writing bookings to json file", e);
-    throw Error("Error writing bookings to json file");
-  }
-}
-
-bookings.get("/", async (c) => {
-  try {
-    const bookings = await getBookings();
+    const bookings = await getBookingsByPropertyId(propertyId);
     return c.json(bookings);
   } catch (e) {
-    console.warn("Error getting bookings", e);
+    console.warn("Error in fetching bookings from SB database", e);
     return c.json([]);
   }
 });
 
-// individuell GET hämta en Booking om den finns baserat på ID annars null 404
-bookings.get("/:id", async (c) => {
-  const bookings = await getBookings();
-  const bookingId = c.req.param("id");
-  const booking = bookings.find((booking) => booking.booking_id === bookingId);
-  if (!booking) {
-    return c.json(null, 404);
-  }
-  return c.json(booking);
-});
-
-// "Skpande" av en Propery POST genom en JSON body använd Postman eller thunderclient för detta
-bookings.post("/", bookingValidator, async (c) => {
-  const bookingBody: NewBooking = c.req.valid("json");
-  const bookings = await getBookings();
-  const booking: Booking = {
-    ...bookingBody,
-    booking_id: `booking_${1000 + bookings.length + 1}`,
-  };
-  bookings.push(booking);
+// Skapa en Booking för en Property, property_id tas från URL:en
+bookings.post("/properties/:propertyId", bookingValidator, async (c) => {
+  const propertyId = c.req.param("propertyId");
+  const bookingBody: BookingBody = c.req.valid("json");
   try {
-    await saveBookings(bookings);
+    const booking = await createBooking(propertyId, bookingBody);
+    return c.json(booking, 201);
   } catch (e) {
-    return c.json(e, 500);
-  }
-  return c.json(booking, 201);
-});
-
-// Extra: "Updaterande" av en Booking PUT/PATCH (för patch kolla Partial types)
-// om den finns tänk en blandning mellan GET + POST
-bookings.patch("/:id", bookingOptionalValidator, async (c) => {
-  const bookingId = c.req.param("id");
-  const bookings = await getBookings();
-  const bookingIndex = bookings.findIndex(
-    (booking) => booking.booking_id === bookingId,
-  );
-
-  if (bookingIndex === -1) {
-    return c.json(null, 404);
-  }
-
-  const bookingBody: Partial<NewBooking> = c.req.valid("json");
-  const updatedBooking = {
-    ...bookings[bookingIndex],
-    ...bookingBody,
-  } as Booking;
-  bookings[bookingIndex] = updatedBooking;
-  try {
-    await saveBookings(bookings);
-    return c.json(updatedBooking);
-  } catch (e) {
+    console.warn("Error in inserting booking into SB DB", e);
+    if ((e as PostgrestError).code === FOREIGN_KEY_VIOLATION) {
+      return c.json(null, 404);
+    }
     return c.json(e, 500);
   }
 });
 
-// Extra: "bortagning" av en Booking DELETE om den finns tänk en GET som sedan tar bort 200/204
-  bookings.delete("/:id", async (c) => {
-  const bookingId = c.req.param("id");
-  const bookings = await getBookings();
-  const bookingIndex = bookings.findIndex(
-    (booking) => booking.booking_id === bookingId,
-  );
-  if (bookingIndex === -1) {
-    return c.json(null, 404);
-  }
-  bookings.splice(bookingIndex, 1);
+// Uppdatera en Booking om den finns och tillhör Propertyn
+bookings.patch(
+  "/properties/:propertyId/:bookingId",
+  bookingOptionalValidator,
+  async (c) => {
+    const propertyId = c.req.param("propertyId");
+    const bookingId = c.req.param("bookingId");
+    const bookingBody: Partial<BookingBody> = c.req.valid("json");
+    try {
+      const booking = await updateBooking(propertyId, bookingId, bookingBody);
+      return c.json(booking);
+    } catch (e) {
+      console.warn("Error updating booking in SB DB", e);
+      return c.json(null, 404);
+    }
+  },
+);
+
+// Ta bort en Booking om den finns och tillhör Propertyn
+bookings.delete("/properties/:propertyId/:bookingId", async (c) => {
+  const propertyId = c.req.param("propertyId");
+  const bookingId = c.req.param("bookingId");
   try {
-    await saveBookings(bookings);
+    await deleteBooking(propertyId, bookingId);
     return c.json(null, 200);
   } catch (e) {
-    return c.json(e, 500);
+    console.warn("Error in deleting booking", e);
+    return c.json(null, 404);
   }
 });
+
 export default bookings;
