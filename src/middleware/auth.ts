@@ -2,18 +2,11 @@ import type { Context, Next } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
 import { HTTPException } from "hono/http-exception";
 import { createServerClient } from "@supabase/ssr";
-import type { SupabaseClient, User } from "@supabase/supabase-js";
 
 import { env } from "../env.js";
+import type { BasicSupabaseClient } from "../types/supabase.js";
 
-declare module "hono" {
-    interface ContextVariableMap {
-        supabase: SupabaseClient;
-        user: User | null;
-    }
-}
-
-function createSupabaseForRequest(c: Context) {
+function createSupabaseForRequest(c: Context): BasicSupabaseClient {
   return createServerClient(env.supabaseUrl, env.supabaseKey, {
     cookies: {
       getAll() {
@@ -43,7 +36,7 @@ function createSupabaseForRequest(c: Context) {
 }
 
 async function setSupabaseContext(c: Context): Promise<void> {
-  const existingClient = c.get("supabase") as SupabaseClient<any, "public", "public", any, any> | undefined;
+  const existingClient = c.get("supabase") as (BasicSupabaseClient | undefined)
 
   if (existingClient) {
     return;
