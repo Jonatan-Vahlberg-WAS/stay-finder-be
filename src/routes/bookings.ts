@@ -31,9 +31,12 @@ bookings.get("/properties/:propertyId", async (c) => {
 // Skapa en Booking för en Property, property_id tas från URL:en
 bookings.post("/properties/:propertyId", bookingValidator, async (c) => {
   const propertyId = c.req.param("propertyId");
-  const bookingBody: BookingBody = c.req.valid("json");
+  const bookingBody = c.req.valid("json");
   try {
-    const booking = await createBooking(propertyId, bookingBody);
+    const booking = await createBooking(propertyId, {
+      ...bookingBody,
+      property_id: propertyId,
+    });
     return c.json(booking, 201);
   } catch (e) {
     console.warn("Error in inserting booking into SB DB", e);
@@ -51,7 +54,7 @@ bookings.patch(
   async (c) => {
     const propertyId = c.req.param("propertyId");
     const bookingId = c.req.param("bookingId");
-    const bookingBody: Partial<BookingBody> = c.req.valid("json");
+    const bookingBody = c.req.valid("json");
     try {
       const booking = await updateBooking(propertyId, bookingId, bookingBody);
       return c.json(booking);

@@ -1,17 +1,11 @@
-type Booking = {
-  booking_id: string;
+import type { Database } from "./database.types.js";
+
+export type Booking = Database["public"]["Tables"]["bookings"]["Row"];
+
+type BookingInsert = Database["public"]["Tables"]["bookings"]["Insert"];
+
+export type NewBooking = Omit<BookingInsert, "booking_id" | "created_at"> & {
   property_id: string;
-  guest_name: string;
-  guest_email: string;
-  check_in: string;
-  check_out: string;
-  guests: number;
-  status: "pending" | "confirmed" | "cancelled";
-  created_at: string;
-}
+};
 
-type NewBooking = Omit<Booking, "booking_id" | "created_at">
-
-type BookingBody = Omit<NewBooking, "property_id">
-
-type BookingValidKey = keyof Booking
+export type BookingValidKey = keyof Booking;
