@@ -1,7 +1,6 @@
 import type { PostgrestSingleResponse } from "@supabase/supabase-js";
 
 import type { BasicSupabaseClient } from "../types/supabase.js";
-import { sb } from "../lib/supabase.js";
 
 const TABLE_NAME = "properties";
 
@@ -14,6 +13,7 @@ const SELECT_QUERY_LIST: PropertyValidKey[] = [
   "max_guests",
   "kind",
   "created_at",
+  "user_id"
 ];
 
 const SELECT_QUERY = SELECT_QUERY_LIST.join(", ");
