@@ -3,6 +3,7 @@ import type { PostgrestSingleResponse } from "@supabase/supabase-js";
 import { sb } from "../lib/supabase.js";
 
 import type { Booking, NewBooking, BookingValidKey } from "../types/booking.js";
+import type { BasicSupabaseClient } from "../types/supabase.js";
 
 const TABLE_NAME = "bookings";
 
@@ -38,13 +39,13 @@ export async function getBookingsByPropertyId(
 }
 
 export async function createBooking(
-  propertyId: string,
+  sb: BasicSupabaseClient,
   bookingBody: NewBooking,
 ): Promise<Booking> {
-  const newBooking: NewBooking = { ...bookingBody, property_id: propertyId };
+  console.log(bookingBody)
   const { error, data }: PostgrestSingleResponse<Booking> = await sb
     .from(TABLE_NAME)
-    .insert(newBooking)
+    .insert(bookingBody)
     .select(SELECT_QUERY)
     .single();
 
