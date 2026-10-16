@@ -13,6 +13,7 @@ const app = new Hono({ strict: false })
 
 app.use('*', cors({
   origin: env.frontendUrl,
+  allowHeaders: ['Authorization', 'Content-Type'],
   credentials: true
 }))
 

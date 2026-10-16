@@ -61,7 +61,6 @@ export async function optionalAuth(c: Context, next: Next) {
 }
 
 export async function requireAuth(c: Context, next: Next) {
-    return next()
     await setSupabaseContext(c)
 
     const user = c.get("user")

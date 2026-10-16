@@ -1,5 +1,7 @@
 import { Hono } from "hono";
 import { authValidator } from "../validators/authValidator.js";
+import { getUser, login, register } from "../database/auth.js";
+import { requireAuth } from "../middleware/auth.js";
 
 const auth = new Hono({
   strict: false,
@@ -10,19 +12,8 @@ auth.post("/register", authValidator, async (c) => {
 
   try {
     const sb = c.get("supabase");
-    const { error, data } = await sb.auth.signUp({
-      email,
-      password,
-    });
-    if (!error) {
-      return c.json(
-        {
-          user: data.user,
-        },
-        201,
-      );
-    }
-    throw error;
+    const user = await register(sb, email, password);
+    return c.json({ user }, 201);
   } catch (e: any) {
     console.warn("Error in registering", e);
     return c.json(
@@ -39,23 +30,33 @@ auth.post("/login", authValidator, async (c) => {
 
   try {
     const sb = c.get("supabase");
-    const { error, data } = await sb.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (!error) {
-      return c.json({
-        user: data.user,
-      });
-    }
-    throw error;
+    const user = await login(sb, email, password);
+    return c.json({ user }, 200);
   } catch (e: any) {
     console.warn("Error in registering", e);
     return c.json(
       {
-        message: e?.message,
+        message: "Invalid credentials",
       },
       400,
+    );
+  }
+});
+
+auth.get("/me", requireAuth, async (c) => {
+  const sb = c.get("supabase");
+  console.log("Getting user", c.get("user"));
+  try {
+
+    const user = await getUser(sb);
+    return c.json({ user }, 200);
+  } catch (e: any) {
+    console.warn("Error in getting user", e);
+    return c.json(
+      {
+        message: "Error in getting user",
+      },
+      500,
     );
   }
 });
